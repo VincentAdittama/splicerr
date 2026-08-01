@@ -307,7 +307,7 @@ export const SoundsSearchAutocomplete = {
 
 const GRAPHQL_URL = "https://surfaces-graphql.splice.com/graphql"
 
-import { fetch } from "@tauri-apps/plugin-http"
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http"
 
 export async function querySplice(
     template: QueryTemplate,
@@ -318,21 +318,54 @@ export async function querySplice(
     const startTime = Date.now()
     console.log("💌 Requesting", body)
     const anonymousId = globalThis.crypto?.randomUUID() ?? "82b23f92-e36e-4951-8a61-757815a06a20"
-    let response = await fetch(GRAPHQL_URL, {
-        method: "POST",
-        body: JSON.stringify(body),
-        headers: {
-            "Content-Type": "application/json",
-            "accept": "application/graphql-response+json,application/json;q=0.9",
-            "x-anonymous-id": anonymousId,
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
-        },
-    })
-    if (!response.ok) {
-        console.error(await response.text())
+
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        "accept": "application/graphql-response+json,application/json;q=0.9",
+        "x-anonymous-id": anonymousId,
+    }
+
+    let response: Response | null = null
+
+    // Attempt 1: Native browser fetch
+    try {
+        response = await globalThis.fetch(GRAPHQL_URL, {
+            method: "POST",
+            body: JSON.stringify(body),
+            headers,
+        })
+    } catch (err) {
+        console.warn("⚠️ Native fetch attempt failed, falling back to Tauri HTTP plugin:", err)
+    }
+
+    // Attempt 2: Tauri HTTP Plugin fallback if native fetch failed or returned non-ok status
+    if (!response || !response.ok) {
+        try {
+            response = await tauriFetch(GRAPHQL_URL, {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers: {
+                    ...headers,
+                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                },
+            })
+        } catch (err) {
+            console.error("❌ Tauri HTTP plugin fetch failed:", err)
+        }
+    }
+
+    if (!response || !response.ok) {
+        if (response) {
+            const errorText = await response.text()
+            console.error(`💥 Splice API error (${response.status}):`, errorText)
+        } else {
+            console.error("💥 Splice API request failed completely with no response.")
+        }
         return null
     }
+
     const json = await response.json()
     console.log("📬 Received", json, "after", Date.now() - startTime, "ms")
     return json
 }
+
