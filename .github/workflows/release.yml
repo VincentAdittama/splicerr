@@ -55,7 +55,7 @@ jobs:
           version: 9
 
       - name: 📦 Install frontend dependencies
-        run: pnpm approve-builds --all || true && pnpm install --no-frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
       - name: 📖 Read Changelog
         id: read_changelog
