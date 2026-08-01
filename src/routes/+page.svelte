@@ -7,6 +7,8 @@
   import Search from "lucide-svelte/icons/search";
   import Smile from "lucide-svelte/icons/smile";
   import Ghost from "lucide-svelte/icons/ghost";
+  import AlertTriangle from "lucide-svelte/icons/alert-triangle";
+  import RotateCw from "lucide-svelte/icons/rotate-cw";
   import Shuffle from "lucide-svelte/icons/shuffle";
   import Button from "$lib/components/ui/button/button.svelte";
   import GenreSelect from "$lib/components/genre-select.svelte";
@@ -554,10 +556,28 @@
           class="flex flex-col gap-2 justify-center items-center size-full text-muted-foreground"
         >
           {#if loading.fetchError}
-            <Ghost size="48" />
-            <p class="font-bold text-xl">Something went wrong :/</p>
-            <p class="text-sm">Couldn't load any samples</p>
-            <Button onclick={fetchAssets}>Retry</Button>
+            <div
+              class="flex flex-col items-center justify-center gap-3 p-6 text-center max-w-md my-auto"
+            >
+              <div class="p-3 rounded-full bg-destructive/10 text-destructive mb-1">
+                <AlertTriangle size="32" />
+              </div>
+              <p class="font-bold text-lg text-foreground">Failed to Load Samples</p>
+              <p class="text-sm text-muted-foreground">
+                Unable to fetch data from Splice API. Please check your network connection or try again.
+              </p>
+              {#if loading.fetchError.message}
+                <div
+                  class="px-3 py-1.5 rounded-md bg-muted text-xs font-mono text-muted-foreground border border-border/50 max-w-full truncate"
+                >
+                  {loading.fetchError.message}
+                </div>
+              {/if}
+              <Button onclick={fetchAssets} variant="outline" class="gap-2 mt-2">
+                <RotateCw size="15" />
+                Retry Connection
+              </Button>
+            </div>
           {:else if loading.beforeFirstLoad}
             <Smile size="48" />
             <p class="font-bold text-xl">Hey there!</p>
@@ -571,12 +591,21 @@
       {/each}
       {#if loading.fetchError && dataStore.sampleAssets.length > 0}
         <div
-          class="flex flex-col py-8 gap-2 justify-center items-center text-muted-foreground"
+          class="flex flex-col py-6 px-4 gap-2 justify-center items-center text-center text-muted-foreground border-t border-border/40 mt-4 bg-muted/20"
         >
-          <Ghost size="48" />
-          <p class="font-bold text-xl">Something went wrong :/</p>
-          <p class="text-sm">Couldn't load any more samples</p>
-          <Button onclick={fetchAssets}>Retry</Button>
+          <div class="flex items-center gap-2 text-destructive font-semibold text-sm">
+            <AlertTriangle size="18" />
+            <span>Failed to load more samples</span>
+          </div>
+          {#if loading.fetchError.message}
+            <p class="text-xs font-mono text-muted-foreground max-w-md truncate">
+              {loading.fetchError.message}
+            </p>
+          {/if}
+          <Button onclick={fetchAssets} variant="outline" size="sm" class="gap-2 mt-1">
+            <RotateCw size="14" />
+            Retry
+          </Button>
         </div>
       {/if}
     </div>

@@ -192,13 +192,9 @@ export const fetchAssets = () => {
         parent_asset_uuid: queryStore.parent_asset_uuid,
     })
         .then((response) => {
-            // Check if identity matched active tab when response returns
-            // But actually we might want to check against the tab that initiated the request...
-            // For now, let's assume global simple handling, but ideally we should track request ID per tab.
-            // Given the complexity, simpliest path is just updating whatever is active, OR we assume
-            // user doesn't switch super fast. 
-            // Better: Check if the currentQueryIdentity matches.
-            
+            if (!response || !response.data || !response.data.assetsSearch) {
+                throw new Error("Splice API request failed or returned invalid data.")
+            }
             const searchResult = (response as SamplesSearchResponse).data
                 .assetsSearch
             const identityAfterFetch = JSON.stringify(queryIdentity)
