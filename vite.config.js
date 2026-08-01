@@ -7,6 +7,10 @@ const host = process.env.TAURI_DEV_HOST
 export default defineConfig(async () => ({
     plugins: [sveltekit()],
 
+    define: {
+        __PROJECT_PATH__: JSON.stringify(process.cwd()),
+    },
+
     // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
     //
     // 1. prevent vite from obscuring rust errors
@@ -23,6 +27,29 @@ export default defineConfig(async () => ({
                   port: 1338,
               }
             : undefined,
+        proxy: {
+            "/splice-api": {
+                target: "https://surfaces-graphql.splice.com",
+                changeOrigin: true,
+                rewrite: (/** @type {string} */ path) => path.replace(/^\/splice-api/, ""),
+                configure: (/** @type {any} */ proxy) => {
+                    proxy.on("proxyReq", (/** @type {any} */ proxyReq, /** @type {any} */ req) => {
+                        // Forward the browser's cookies so Cloudflare sees a valid browser session
+                        if (req.headers["cookie"]) {
+                            proxyReq.setHeader("Cookie", req.headers["cookie"])
+                        }
+                        proxyReq.setHeader("Origin", "https://splice.com")
+                        proxyReq.setHeader("Referer", "https://splice.com/")
+                        proxyReq.setHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                    })
+                    proxy.on("proxyRes", (/** @type {any} */ _proxyRes, /** @type {any} */ _req, /** @type {any} */ res) => {
+                        // Allow CORS for localhost
+                        res.setHeader("Access-Control-Allow-Origin", "*")
+                        res.setHeader("Access-Control-Allow-Headers", "*")
+                    })
+                },
+            },
+        },
         watch: {
             // 3. tell vite to ignore watching `src-tauri`
             ignored: ["**/src-tauri/**"],

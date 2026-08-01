@@ -313,6 +313,11 @@ export async function querySplice(
     template: QueryTemplate,
     variables: typeof template.variables = {}
 ) {
+    const isBrowserDev =
+        import.meta.env.DEV &&
+        typeof window !== "undefined" &&
+        !(window as any).__TAURI_INTERNALS__
+
     const body = { ...template }
     Object.assign(body.variables, variables)
     const startTime = Date.now()
@@ -327,30 +332,66 @@ export async function querySplice(
 
     let response: Response | null = null
 
-    // Attempt 1: Native browser fetch
-    try {
-        response = await globalThis.fetch(GRAPHQL_URL, {
-            method: "POST",
-            body: JSON.stringify(body),
-            headers,
-        })
-    } catch (err) {
-        console.warn("⚠️ Native fetch attempt failed, falling back to Tauri HTTP plugin:", err)
-    }
-
-    // Attempt 2: Tauri HTTP Plugin fallback if native fetch failed or returned non-ok status
-    if (!response || !response.ok) {
+    if (isBrowserDev) {
+        // In browser dev: try direct first (works when --disable-web-security is set).
+        // If CORS blocks it (TypeError), fall back to Vite proxy.
         try {
-            response = await tauriFetch(GRAPHQL_URL, {
+            response = await globalThis.fetch(GRAPHQL_URL, {
                 method: "POST",
                 body: JSON.stringify(body),
-                headers: {
-                    ...headers,
-                    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-                },
+                headers,
+            })
+            if (response && !response.ok) {
+                console.warn(`⚠️ Direct API returned ${response.status}, falling back to proxy...`)
+                response = null
+            }
+        } catch (err: any) {
+            const isCors = err instanceof TypeError && (err.message?.includes("Failed to fetch") || err.message?.includes("CORS") || err.message?.includes("NetworkError"))
+            if (isCors) {
+                console.warn("⚠️ CORS blocked direct call, falling back to Vite proxy...")
+            } else {
+                console.warn("⚠️ Direct fetch failed:", err)
+            }
+            response = null
+        }
+
+        // Fallback: Vite proxy (bypasses CORS but may be blocked by Cloudflare bot detection)
+        if (!response) {
+            try {
+                response = await globalThis.fetch("/splice-api/graphql", {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                    headers,
+                })
+            } catch (err) {
+                console.error("❌ Proxy fetch also failed:", err)
+            }
+        }
+    } else {
+        // Tauri desktop app or production: call directly
+        try {
+            response = await globalThis.fetch(GRAPHQL_URL, {
+                method: "POST",
+                body: JSON.stringify(body),
+                headers,
             })
         } catch (err) {
-            console.error("❌ Tauri HTTP plugin fetch failed:", err)
+            console.warn("⚠️ Native fetch failed, falling back to Tauri HTTP plugin:", err)
+        }
+
+        if (!response || !response.ok) {
+            try {
+                response = await tauriFetch(GRAPHQL_URL, {
+                    method: "POST",
+                    body: JSON.stringify(body),
+                    headers: {
+                        ...headers,
+                        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+                    },
+                })
+            } catch (err) {
+                console.error("❌ Tauri HTTP plugin fetch failed:", err)
+            }
         }
     }
 

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "tauri dev",
     "dev:web": "vite dev",
+    "dev:browser": "bash scripts/dev-browser.sh",
     "build": "tauri build",
     "build:web": "vite build",
     "build:macos": "tauri build --target aarch64-apple-darwin",
@@ -38,6 +39,7 @@
     "uid": "^2.0.2"
   },
   "devDependencies": {
+    "@locator/runtime": "^0.5.1",
     "@sveltejs/adapter-static": "^3.0.10",
     "@sveltejs/kit": "^2.70.2",
     "@sveltejs/vite-plugin-svelte": "^5.1.1",
