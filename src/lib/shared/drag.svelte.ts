@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core"
 import { saveSample } from "./files.svelte"
 import { loading } from "./loading.svelte"
 import { globalAudio } from "./audio.svelte"
+import { settingsDialog } from "./config.svelte"
 import type { SampleAsset, PackAsset } from "$lib/splice/types"
 
 // Cache for in-flight or completed preparations
@@ -85,8 +86,11 @@ export async function handleSampleDrag(event: DragEvent, sampleAsset: SampleAsse
         // Only pause audio after a successful drag operation (drop completed)
         console.log("🛑 Drag completed, stopping audio")
         globalAudio.pause()
-    } catch (e) {
+    } catch (e: any) {
         console.error("⚠️ Error dragging", e)
+        if (e?.message?.includes("Samples Directory")) {
+            settingsDialog.open = true
+        }
     } finally {
         // Clear the drag loading state and reset cursor
         loading.draggedSamples.delete(sampleAsset.uuid)
