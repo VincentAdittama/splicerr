@@ -317,11 +317,15 @@ export async function querySplice(
     Object.assign(body.variables, variables)
     const startTime = Date.now()
     console.log("💌 Requesting", body)
+    const anonymousId = globalThis.crypto?.randomUUID() ?? "82b23f92-e36e-4951-8a61-757815a06a20"
     let response = await fetch(GRAPHQL_URL, {
         method: "POST",
         body: JSON.stringify(body),
         headers: {
             "Content-Type": "application/json",
+            "accept": "application/graphql-response+json,application/json;q=0.9",
+            "x-anonymous-id": anonymousId,
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36",
         },
     })
     if (!response.ok) {
