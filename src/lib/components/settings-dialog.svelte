@@ -23,6 +23,33 @@
     import Switch from "$lib/components/ui/switch/switch.svelte"
 
     let flashbangAudio = $state<HTMLAudioElement>(null!)
+
+    const isTauri = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
+
+    async function openFolderPicker() {
+        if (isTauri()) {
+            openDialog({
+                multiple: false,
+                directory: true,
+            }).then((path) => {
+                if (path) {
+                    config.samples_dir = path
+                    saveConfig()
+                }
+            })
+        } else {
+            // Browser can't expose full paths — showDirectoryPicker gives only folder name
+            // Full path must be typed manually in the input field
+            try {
+                const handle = await (window as any).showDirectoryPicker({ mode: "read" })
+                // handle.name = folder name only, browser blocks full path access
+                config.samples_dir = handle.name
+                saveConfig()
+            } catch (e) {
+                // User cancelled or browser doesn't support it
+            }
+        }
+    }
 </script>
 
 <Dialog.Root bind:open={settingsDialog.open}>
@@ -49,7 +76,7 @@
                         class={isSamplesDirValid()
                             ? ""
                             : "border-warn focus-visible:border-warn focus-visible:outline-warn"}
-                        placeholder="e.g. .../Documents/Samples/Splice"
+                        placeholder="e.g. /Volumes/.../Splice"
                         bind:value={config.samples_dir}
                         oninput={saveConfig}
                     />
@@ -57,17 +84,8 @@
                         class="flex-shrink-0 text-accent-foreground"
                         size="icon"
                         variant="outline"
-                        onclick={() => {
-                            openDialog({
-                                multiple: false,
-                                directory: true,
-                            }).then((path) => {
-                                if (path) {
-                                    config.samples_dir = path
-                                    saveConfig()
-                                }
-                            })
-                        }}><FolderOpen /></Button
+                        title={isTauri() ? "Browse for folder" : "Browser can't read full path — type path manually"}
+                        onclick={openFolderPicker}><FolderOpen /></Button
                     >
                 </div>
                 <div

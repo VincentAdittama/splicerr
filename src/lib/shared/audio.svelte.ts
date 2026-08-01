@@ -5,7 +5,7 @@ import {
     dataStore,
 } from "$lib/shared/store.svelte"
 import { descrambleSample } from "$lib/splice/descrambler"
-import { fetch } from "@tauri-apps/plugin-http"
+import { httpFetch } from "$lib/shared/http"
 
 import { SvelteMap } from "svelte/reactivity"
 
@@ -54,7 +54,7 @@ export async function getDescrambledSample(sampleAsset: SampleAsset): Promise<Au
             loading.samplesCount++
 
             console.log("⬇️ Fetching audio:", sampleAsset.name)
-            const response = await fetch(sampleAsset.files[0].url)
+            const response = await httpFetch(sampleAsset.files[0].url)
             const data = new Uint8Array(await response.arrayBuffer())
             const descrambledData = descrambleSample(data)
 

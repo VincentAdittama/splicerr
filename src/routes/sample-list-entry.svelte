@@ -79,12 +79,14 @@
   };
 </script>
 
-<button
+<div
+  role="row"
   class={cn(
-    "flex gap-4 items-center justify-between p-1 rounded-lg focus:outline-none cursor-grab",
-    selected && "bg-muted",
+    "grid gap-4 items-center p-1 rounded-lg focus:outline-none cursor-pointer text-left transition-colors hover:bg-muted/60",
+    selected && "bg-muted font-medium",
     className
   )}
+  style="grid-template-columns: var(--sample-grid-cols, 48px minmax(200px, 2.5fr) 48px minmax(140px, 1.5fr) 60px 70px 60px);"
   id={`sample-list-entry-${sampleAsset.uuid}`}
   draggable={!loading.draggedSamples.has(sampleAsset.uuid)}
   tabindex="-1"
@@ -99,46 +101,27 @@
   ondragstart={(event) => handleSampleDrag(event, sampleAsset)}
   class:cursor-wait={loading.draggedSamples.has(sampleAsset.uuid)}
 >
-  <PackPreview {pack} />
-  <Button
-    variant="ghost"
-    bind:ref={playButtonRef}
-    class="group flex-shrink-0 focus:outline-none"
-    size="icon-lg"
-    onclick={() =>
-      playing ? globalAudio.pause() : globalAudio.playSampleAsset(sampleAsset)}
-  >
-    {#if (selected && globalAudio.loading) || (loading.samplesCount && loading.samples.has(sampleAsset.uuid)) || loading.draggedSamples.has(sampleAsset.uuid)}
-      <LoaderCircle class="animate-spin" />
-    {:else if playing}
-      <Pause />
-    {:else}
-      <Play class="group-hover:block hidden" />
-      {#if sampleAsset.asset_category_slug in assetIcons}
-        {@const Icon = assetIcons[sampleAsset.asset_category_slug]}
-        <Icon class="group-hover:hidden" />
-      {:else}
-        <CircleX class="group-hover:hidden" />
-      {/if}
+  <!-- Col 1: Pack -->
+  <div class="flex items-center justify-center w-full h-full min-w-0">
+    <PackPreview {pack} />
+  </div>
+
+  <!-- Col 2: Filename & Tags -->
+  <div class="flex min-w-0 items-center gap-2 w-full h-full">
+    {#if audioBufferCache.has(sampleAsset.uuid)}
+      <div class="h-1.5 w-1.5 rounded-full bg-green-500 flex-shrink-0"></div>
     {/if}
-  </Button>
-  <div class="min-w-32 w-96 flex-[3_1_auto] overflow-clip">
     <div
       class={cn(
-        "text-left relative after:content-[''] after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-gradient-to-r after:from-transparent after:pointer-events-none",
+        "flex-1 min-w-0 text-left relative after:content-[''] after:absolute after:inset-y-0 after:right-0 after:w-4 after:bg-gradient-to-r after:from-transparent after:pointer-events-none",
         selected ? " after:to-muted" : "after:to-background"
       )}
     >
       <Tooltip.Provider>
         <Tooltip.Root>
           <Tooltip.Trigger
-            class="overflow-clip text-nowrap cursor-grab flex items-center gap-2"
+            class="overflow-clip text-nowrap cursor-pointer text-sm font-medium hover:underline flex items-center gap-2"
           >
-            {#if audioBufferCache.has(sampleAsset.uuid)}
-              <div
-                class="h-1.5 w-1.5 rounded-full bg-green-500/50 flex-shrink-0"
-              ></div>
-            {/if}
             {name}
           </Tooltip.Trigger>
           <Tooltip.Content>
@@ -169,23 +152,59 @@
       </div>
     </div>
   </div>
-  <Waveform
-    src={sampleAsset.files[1].url}
-    progress={selected ? globalAudio.progress() : 0}
-    onseek={(progress) => {
-      const startTime = progress * (sampleAsset.duration / 1000);
-      globalAudio.playSampleAsset(sampleAsset, startTime);
-    }}
-    class="min-w-32 w-[150px] h-12 flex-grow md:block hidden"
-  />
-  <div class="text-muted-foreground flex-shrink-0 w-14 flex-grow">
+
+  <!-- Col 3: Play Button -->
+  <div class="flex items-center justify-center w-full h-full min-w-0">
+    <Button
+      variant="ghost"
+      bind:ref={playButtonRef}
+      class="group flex-shrink-0 focus:outline-none"
+      size="icon-lg"
+      onclick={() =>
+        playing ? globalAudio.pause() : globalAudio.playSampleAsset(sampleAsset)}
+    >
+      {#if (selected && globalAudio.loading) || (loading.samplesCount && loading.samples.has(sampleAsset.uuid)) || loading.draggedSamples.has(sampleAsset.uuid)}
+        <LoaderCircle class="animate-spin" />
+      {:else if playing}
+        <Pause />
+      {:else}
+        <Play class="group-hover:block hidden" />
+        {#if sampleAsset.asset_category_slug in assetIcons}
+          {@const Icon = assetIcons[sampleAsset.asset_category_slug]}
+          <Icon class="group-hover:hidden" />
+        {:else}
+          <CircleX class="group-hover:hidden" />
+        {/if}
+      {/if}
+    </Button>
+  </div>
+
+  <!-- Col 4: Waveform -->
+  <div class="flex items-center min-w-0 w-full h-full md:flex hidden">
+    <Waveform
+      src={sampleAsset.files[1].url}
+      progress={selected ? globalAudio.progress() : 0}
+      onseek={(progress) => {
+        const startTime = progress * (sampleAsset.duration / 1000);
+        globalAudio.playSampleAsset(sampleAsset, startTime);
+      }}
+      class="w-full h-10 md:block hidden"
+    />
+  </div>
+
+  <!-- Col 5: Time -->
+  <div class="flex items-center justify-end w-full h-full text-muted-foreground text-xs font-mono min-w-0">
     {millisToMinutesAndSeconds(sampleAsset.duration)}
   </div>
-  <div class="text-muted-foreground flex-shrink-0 w-14 flex-grow">
+
+  <!-- Col 6: Key -->
+  <div class="flex items-center justify-end w-full h-full text-muted-foreground text-xs font-mono min-w-0">
     {(sampleAsset.key && formatKey(sampleAsset.key, sampleAsset.chord_type)) ??
       "--"}
   </div>
-  <div class="text-muted-foreground flex-shrink-0 w-14 flex-grow">
+
+  <!-- Col 7: BPM -->
+  <div class="flex items-center justify-end w-full h-full text-muted-foreground text-xs font-mono min-w-0">
     {sampleAsset.bpm ?? "--"}
   </div>
-</button>
+</div>

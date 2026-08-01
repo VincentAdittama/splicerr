@@ -12,7 +12,6 @@ import type {
 } from "$lib/splice/types"
 import { globalAudio } from "./audio.svelte"
 import { loading as globalLoading } from "./loading.svelte"
-import { fetch } from "@tauri-apps/plugin-http"
 import { tabManager } from "./tabs.svelte"
 
 // Combined loading proxy

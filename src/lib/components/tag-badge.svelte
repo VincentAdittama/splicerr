@@ -27,7 +27,7 @@
         <Tooltip.Trigger class="focus:outline-none" tabindex={-1}>
             <Button
                 class={cn(
-                    "px-2 min-w-14 h-6 justify-center shrink-0",
+                    "px-2 min-w-0 h-6 justify-center shrink-0",
                     !active && "text-muted-foreground",
                     variant == "ghost" &&
                         "text-muted-foreground hover:bg-secondary/80 border-transparent hover:text-accent-foreground",

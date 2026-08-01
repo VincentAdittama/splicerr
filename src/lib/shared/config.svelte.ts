@@ -1,13 +1,3 @@
-import { appConfigDir, isAbsolute } from "@tauri-apps/api/path"
-import {
-    exists,
-    BaseDirectory,
-    readTextFile,
-    create,
-    writeTextFile,
-    mkdir,
-    stat,
-} from "@tauri-apps/plugin-fs"
 import { resetMode, setMode } from "mode-watcher"
 
 const CONFIG_FILE_NAME = "config.json"
@@ -22,6 +12,9 @@ const DEFAULT_CONFIG = {
     repeat_audio: true,
 }
 
+const isTauri = () =>
+    typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
+
 let samplesDirValid = $state(false)
 
 export let settingsDialog = $state({ open: false })
@@ -33,6 +26,23 @@ export let config = $state<typeof DEFAULT_CONFIG>(
 )
 
 export async function validateSamplesDir() {
+    // Strip surrounding quotes and whitespace (e.g. user pastes '/path/' or "/path/")
+    if (config.samples_dir) {
+        config.samples_dir = config.samples_dir
+            .trim()
+            .replace(/^(['"])(.*)\1$/, "$2")
+            .trim()
+    }
+
+    if (!isTauri()) {
+        // In web mode, treat any non-empty string as valid
+        samplesDirValid = !!config.samples_dir && config.samples_dir.trim() !== ""
+        return samplesDirValid
+    }
+
+    const { isAbsolute } = await import("@tauri-apps/api/path")
+    const { exists, stat } = await import("@tauri-apps/plugin-fs")
+
     async function validate() {
         if (!config.samples_dir) return false
         if (!(await isAbsolute(config.samples_dir))) return false
@@ -53,6 +63,23 @@ export async function validateSamplesDir() {
 }
 
 export async function loadConfig() {
+    if (!isTauri()) {
+        // In web mode, load from localStorage
+        const stored = localStorage.getItem(CONFIG_FILE_NAME)
+        if (stored) {
+            Object.assign(config, JSON.parse(stored))
+            console.log("📂 Config loaded from localStorage")
+        } else {
+            // No saved config — leave samples_dir null so user can type their own path
+            console.log("📂 Config not found, using defaults")
+        }
+        await validateSamplesDir()
+        return
+    }
+
+    const { appConfigDir } = await import("@tauri-apps/api/path")
+    const { exists, BaseDirectory, readTextFile, mkdir, create } = await import("@tauri-apps/plugin-fs")
+
     if (
         !(await exists(CONFIG_FILE_NAME, { baseDir: BaseDirectory.AppConfig }))
     ) {
@@ -69,7 +96,18 @@ export async function loadConfig() {
 }
 
 export async function saveConfig() {
+    if (!isTauri()) {
+        // In web mode, persist to localStorage
+        await validateSamplesDir()
+        localStorage.setItem(CONFIG_FILE_NAME, JSON.stringify(config))
+        console.log("💾 Config saved to localStorage")
+        return
+    }
+
     await validateSamplesDir()
+
+    const { appConfigDir } = await import("@tauri-apps/api/path")
+    const { exists, BaseDirectory, writeTextFile, mkdir, create } = await import("@tauri-apps/plugin-fs")
 
     const appConfig = await appConfigDir()
     if (!(await exists(appConfig))) await mkdir(appConfig)

@@ -26,27 +26,27 @@
     const active = $derived(value == sort)
 </script>
 
-<div class={className}>
+<div class={cn("flex items-center min-w-0", className)}>
     <Button
         variant="ghost"
         size="sm"
         class={cn(
-            "gap-0 p-1",
+            "gap-1 px-0 h-auto font-medium text-xs hover:bg-transparent hover:text-primary focus-visible:ring-0",
             active ? "text-primary" : "text-muted-foreground"
         )}
         onclick={() => onsort(value)}
     >
-        <p>{label}</p>
+        <span>{label}</span>
         {#if active}
             <ChevronDown
-                size="18"
+                size="14"
                 class={cn(
-                    "transition-transform ease-in-out",
+                    "transition-transform ease-in-out shrink-0",
                     order == "ASC" ? "rotate-[-180deg]" : ""
                 )}
             />
         {:else}
-            <ChevronsUpDown size="12" />
+            <ChevronsUpDown size="12" class="shrink-0 opacity-50" />
         {/if}
     </Button>
 </div>

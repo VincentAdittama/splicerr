@@ -40,6 +40,67 @@
   import TabBar from "$lib/components/tab-bar.svelte";
   import { tabManager } from "$lib/shared/tabs.svelte";
 
+  let colWidths = $state<{
+    pack: number | null;
+    name: number | null;
+    play: number | null;
+    waveform: number | null;
+    time: number | null;
+    key: number | null;
+    bpm: number | null;
+  }>({
+    pack: null,
+    name: null,
+    play: null,
+    waveform: null,
+    time: null,
+    key: null,
+    bpm: null,
+  });
+
+  function resetCol(col: keyof typeof colWidths) {
+    colWidths[col] = null;
+  }
+
+  function startResizeCol(col: keyof typeof colWidths, minW = 32, maxW = 1000) {
+    return (e: MouseEvent) => {
+      e.preventDefault();
+      const handleEl = e.currentTarget as HTMLElement;
+      const colEl = handleEl.parentElement;
+      const initialWidth =
+        colWidths[col] ?? colEl?.getBoundingClientRect().width ?? 100;
+      const startX = e.clientX;
+
+      function onMouseMove(moveEvent: MouseEvent) {
+        const delta = moveEvent.clientX - startX;
+        colWidths[col] = Math.max(
+          minW,
+          Math.min(maxW, Math.round(initialWidth + delta))
+        );
+      }
+
+      function onMouseUp() {
+        window.removeEventListener("mousemove", onMouseMove);
+        window.removeEventListener("mouseup", onMouseUp);
+      }
+
+      window.addEventListener("mousemove", onMouseMove);
+      window.addEventListener("mouseup", onMouseUp);
+    };
+  }
+
+  const gridTemplate = $derived(
+    [
+      colWidths.pack ? `${colWidths.pack}px` : "48px",
+      colWidths.name ? `${colWidths.name}px` : "minmax(200px, 2.5fr)",
+      colWidths.play ? `${colWidths.play}px` : "48px",
+      colWidths.waveform ? `${colWidths.waveform}px` : "minmax(140px, 1.5fr)",
+      colWidths.time ? `${colWidths.time}px` : "60px",
+      colWidths.key ? `${colWidths.key}px` : "70px",
+      colWidths.bpm ? `${colWidths.bpm}px` : "60px",
+    ].join(" ")
+  );
+
   // TODO: Taxonomy comboboxes (maybe just pass all tags to each)
   // const instrumentTags = $derived(() =>
   //     dataStore.tag_summary.filter(
@@ -489,54 +550,144 @@
         order={queryStore.order}
       />
     </div>
-
-    <div class="flex flex-col gap-2">
-      <Separator />
-      <div class="flex gap-2 items-center justify-between overflow-clip px-2">
-        <div class="w-12 flex-shrink-0 text-xs text-muted-foreground">Pack</div>
-        <div class="w-12 flex-shrink-0 text-xs text-muted-foreground"></div>
-        <SortHeader
-          value="name"
-          label="Filename"
-          sort={queryStore.sort}
-          order={queryStore.order}
-          onsort={updateSort}
-          class="min-w-32 w-96 flex-[3_1_auto]"
-        />
-        <div class="min-w-32 w-[150px] flex-grow md:block hidden"></div>
-        <SortHeader
-          value="duration"
-          label="Time"
-          sort={queryStore.sort}
-          order={queryStore.order}
-          onsort={updateSort}
-          class="flex-shrink-0 w-14 flex-grow"
-        />
-        <SortHeader
-          value="key"
-          label="Key"
-          sort={queryStore.sort}
-          order={queryStore.order}
-          onsort={updateSort}
-          class="flex-shrink-0 w-14 flex-grow"
-        />
-        <SortHeader
-          value="bpm"
-          label="BPM"
-          sort={queryStore.sort}
-          order={queryStore.order}
-          onsort={updateSort}
-          class="flex-shrink-0 w-14 flex-grow"
-        />
-      </div>
-      <ProgressLoading loading={loading.assets || loading.waveformsCount > 0} />
-    </div>
   </div>
+
   <ScrollArea
+    orientation="both"
     class="px-4 flex-grow before:content-[''] before:absolute before:inset-x-0 before:top-0 before:h-4 before:bg-gradient-to-t before:from-transparent before:to-background before:pointer-events-none after:content-[''] after:absolute after:inset-x-0 after:bottom-0 after:h-4 after:bg-gradient-to-b after:from-transparent after:to-background after:pointer-events-none"
     bind:viewportRef
   >
-    <div class="flex flex-col py-2 size-full">
+    <div
+      class="flex flex-col py-2 min-w-[640px] w-full h-full"
+      style="--sample-grid-cols: {gridTemplate};"
+    >
+      <!-- STICKY HEADER -->
+      <div class="sticky top-0 z-20 bg-background/95 backdrop-blur-md pb-2 pt-1 flex flex-col gap-2">
+        <div
+          class="grid gap-4 items-center p-1 font-medium text-xs text-muted-foreground select-none"
+          style="grid-template-columns: var(--sample-grid-cols);"
+        >
+          <!-- Pack Col -->
+          <div class="relative flex items-center justify-center min-w-0 w-full h-full">
+            <div class="truncate">Pack</div>
+            <button
+              type="button"
+              aria-label="Resize Pack column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("pack", 32, 120)}
+              ondblclick={() => resetCol("pack")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- Filename Col -->
+          <div class="relative flex items-center min-w-0 w-full h-full">
+            <SortHeader
+              value="name"
+              label="Filename"
+              sort={queryStore.sort}
+              order={queryStore.order}
+              onsort={updateSort}
+              class="min-w-0"
+            />
+            <button
+              type="button"
+              aria-label="Resize Filename column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("name", 120, 800)}
+              ondblclick={() => resetCol("name")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- Play Col -->
+          <div class="relative flex items-center justify-center min-w-0 w-full h-full">
+            <div class="truncate text-center">Play</div>
+            <button
+              type="button"
+              aria-label="Resize Play column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("play", 32, 100)}
+              ondblclick={() => resetCol("play")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- Waveform Col -->
+          <div class="relative flex items-center min-w-0 w-full h-full md:flex hidden">
+            <div>Waveform</div>
+            <button
+              type="button"
+              aria-label="Resize Waveform column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("waveform", 60, 500)}
+              ondblclick={() => resetCol("waveform")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- Time Col -->
+          <div class="relative flex items-center justify-end min-w-0 w-full h-full">
+            <SortHeader
+              value="duration"
+              label="Time"
+              sort={queryStore.sort}
+              order={queryStore.order}
+              onsort={updateSort}
+              class="justify-end w-full"
+            />
+            <button
+              type="button"
+              aria-label="Resize Time column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("time", 40, 160)}
+              ondblclick={() => resetCol("time")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- Key Col -->
+          <div class="relative flex items-center justify-end min-w-0 w-full h-full">
+            <SortHeader
+              value="key"
+              label="Key"
+              sort={queryStore.sort}
+              order={queryStore.order}
+              onsort={updateSort}
+              class="justify-end w-full"
+            />
+            <button
+              type="button"
+              aria-label="Resize Key column"
+              class="absolute right-0 translate-x-1/2 top-0 bottom-0 w-3 cursor-col-resize opacity-0 hover:opacity-100 active:opacity-100 transition-opacity flex items-center justify-center group z-30 focus:outline-none"
+              onmousedown={startResizeCol("key", 40, 160)}
+              ondblclick={() => resetCol("key")}
+            >
+              <div class="w-0.5 h-3 bg-primary rounded-full pointer-events-none"></div>
+            </button>
+          </div>
+
+          <!-- BPM Col -->
+          <div class="relative flex items-center justify-end min-w-0 w-full h-full">
+            <SortHeader
+              value="bpm"
+              label="BPM"
+              sort={queryStore.sort}
+              order={queryStore.order}
+              onsort={updateSort}
+              class="justify-end w-full"
+            />
+          </div>
+        </div>
+        <ProgressLoading loading={loading.assets || loading.waveformsCount > 0} />
+        <Separator />
+      </div>
+
       {#each dataStore.sampleAssets as sampleAsset, index}
         {@const selected = globalAudio.currentAsset?.uuid == sampleAsset.uuid}
         <SampleListEntry
