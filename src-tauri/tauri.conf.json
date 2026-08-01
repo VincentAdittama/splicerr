@@ -4,9 +4,9 @@
     "version": "../package.json",
     "identifier": "de.kosro.splice-tab",
     "build": {
-        "beforeDevCommand": "pnpm run dev",
+        "beforeDevCommand": "pnpm run dev:web",
         "devUrl": "http://localhost:1337",
-        "beforeBuildCommand": "pnpm run build",
+        "beforeBuildCommand": "pnpm run build:web",
         "frontendDist": "../build"
     },
     "app": {

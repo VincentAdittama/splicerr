@@ -2,8 +2,8 @@ name: "🚀 Publish Release"
 
 on:
   push:
-    branches:
-      - release
+    tags:
+      - 'v*'
 
   workflow_dispatch:
 
@@ -69,8 +69,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: app-v__VERSION__ # the action automatically replaces \_\_VERSION\_\_ with the app version.
-          releaseName: "App v__VERSION__"
+          tagName: v__VERSION__
+          releaseName: "Splice-Tab v__VERSION__"
           releaseBody: ${{ steps.read_changelog.outputs.changelog }}
           releaseDraft: true
           prerelease: false

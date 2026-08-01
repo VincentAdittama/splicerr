@@ -1,5 +1,15 @@
 # Changelog
 
+## [3.0.0] - 2026-08-01
+
+### 🚀 Major Update & Optimizations
+
+- **Asset Bloat Trimming**: Purged unused mobile (`android/`, `ios/`) & store icon sets. Streamlined to single-source master icon generation via `pnpm icon`.
+- **Rust Compiler Optimizations**: Added `[profile.release]` configuration (`panic = "abort"`, `lto = true`, `opt-level = "z"`, `strip = true`) for slim binary output.
+- **Dependency Overhaul**: Upgraded to latest `@tauri-apps/api` 2.11, Svelte 5, Vite 6, SvelteKit 2.70, and Rust crates (`tauri`, `tokio`, `reqwest`).
+- **Improved DX & Scripts**: Added intuitive `pnpm dev`, `pnpm build`, `pnpm dev:web`, `pnpm build:web`, and `pnpm icon` command shortcuts.
+- **Release Automation**: Updated GitHub Action release workflow to trigger automatically on Git Version Tags (`v*`).
+
 ## [2.0.0] - 2026-01-03
 
 ### ✨ New Features
